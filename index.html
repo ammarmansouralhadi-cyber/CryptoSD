@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خزنة عمار الشخصية</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?q=80&w=1000') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(15, 15, 15, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 2px solid #d4af37;
+        }
+        h1, h2 { text-align: center; color: #d4af37; }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #222;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #d4af37;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #f39c12; }
+        .hidden { display: none !important; }
+        .vault-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        .item-card {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            border-right: 4px solid #d4af37;
+            word-break: break-all;
+        }
+        .vault-badge {
+            text-align: center;
+            background: #d4af37;
+            color: #000;
+            font-weight: bold;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- شاشة تسجيل الدخول -->
+        <div id="login-box">
+            <h1 style="font-size: 50px; margin: 0;">🛡️</h1>
+            <h1 style="color: #d4af37;">خزنة عمار</h1>
+            <p style="text-align: center; color: #aaa;">أدخل اسم المستخدم وكلمة المرور (ammar)</p>
+            <input type="text" id="username" placeholder="اسم المستخدم">
+            <input type="password" id="password" placeholder="كلمة المرور">
+            <button onclick="login()">فتح الخزنة</button>
+            <p id="error-msg" style="color: #ff5252; text-align: center;"></p>
+        </div>
+
+        <!-- محتوى الخزنة -->
+        <div id="vault-content" class="hidden">
+            <div class="vault-badge">🔐 خزنة عمار المحمية</div>
+
+            <!-- أزرار النسخ الاحتياطي والاسترجاع للهاتف الجديد -->
+            <div style="background: rgba(212, 175, 55, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed #d4af37;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; text-align: center; color: #d4af37;">📱 لنقل البيانات لهاتف جديد:</p>
+                <button onclick="exportBackup()" style="background: #27ae60; color: #fff; margin-bottom: 5px;">📥 تحميل ملف النسخة الاحتياطية</button>
+                <label style="font-size: 12px; color: #ccc; display: block; text-align: center; margin-top: 5px;">استرجاع من ملف:</label>
+                <input type="file" id="import-file" onchange="importBackup(event)" style="padding: 6px; font-size: 12px;">
+            </div>
+            
+            <!-- قسم البيانات -->
+            <div class="vault-section">
+                <h3>🔑 كلمات المرور والأسماء والإيميلات</h3>
+                <input type="text" id="pass-title" placeholder="اسم الحساب / الشخص">
+                <input type="text" id="pass-user" placeholder="الإيميل أو اسم المستخدم">
+                <input type="text" id="pass-value" placeholder="كلمة المرور أو الرقم">
+                <button onclick="saveItem('passwords')">حفظ البيانات</button>
+                <div id="passwords-list"></div>
+            </div>
+
+            <!-- قسم الوسائط والتطبيقات -->
+            <div class="vault-section">
+                <h3>📱 الصور، الفيديوهات والتطبيقات</h3>
+                <input type="text" id="media-title" placeholder="اسم الملف أو التطبيق">
+                <input type="text" id="media-url" placeholder="رابط الملف أو التطبيق (URL)">
+                <button onclick="saveItem('media')">حفظ الملف / التطبيق</button>
+                <div id="media-list"></div>
+            </div>
+
+            <button onclick="logout()" style="background-color: #ff5252; color: white; margin-top: 20px;">قفل الخزنة (خروج)</button>
+        </div>
+    </div>
+
+    <script>
+        function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if (u === 'ammar' && p === 'ammar') {
+                document.getElementById('login-box').classList.add('hidden');
+                document.getElementById('vault-content').classList.remove('hidden');
+                loadAllData();
+            } else {
+                document.getElementById('error-msg').innerText = 'خطأ: اسم المستخدم أو كلمة المرور غير صحيحة!';
+            }
+        }
+
+        function logout() {
+            document.getElementById('vault-content').classList.add('hidden');
+            document.getElementById('login-box').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function saveItem(type) {
+            let data = {};
+            if (type === 'passwords') {
+                data.title = document.getElementById('pass-title').value;
+                data.user = document.getElementById('pass-user').value;
+                data.val = document.getElementById('pass-value').value;
+                if(!data.title || !data.val) return alert('يرجى كتابة الاسم وكلمة المرور');
+            } else {
+                data.title = document.getElementById('media-title').value;
+                data.url = document.getElementById('media-url').value;
+                if(!data.title || !data.url) return alert('يرجى ملء الحقول');
+            }
+
+            let saved = JSON.parse(localStorage.getItem('ammar_' + type) || '[]');
+            saved.push(data);
+            localStorage.setItem('ammar_' + type, JSON.stringify(saved));
+
+            document.querySelectorAll('input').forEach(i => { 
+                if(i.id !== 'username' && i.id !== 'password' && i.type !== 'file') i.value = ''; 
+            });
+            loadAllData();
+        }
+
+        function loadAllData() {
+            ['passwords', 'media'].forEach(type => {
+                const list = document.getElementById(type + '-list');
+                list.innerHTML = '';
+                let saved = JSON.parse(localStorage.getItem('ammar_' + type) || '[]');
+                saved.forEach(item => {
+                    if (type === 'passwords') {
+                        list.innerHTML += `<div class="item-card"><b>${item.title}</b><br>المستخدم: ${item.user}<br>المرور: ${item.val}</div>`;
+                    } else {
+                        list.innerHTML += `<div class="item-card"><b>${item.title}</b><br><a href="${item.url}" target="_blank" style="color: #d4af37;">فتح الرابط / الملف</a></div>`;
+                    }
+                });
+            });
+        }
+
+        function exportBackup() {
+            const backupData = {
+                passwords: JSON.parse(localStorage.getItem('ammar_passwords') || '[]'),
+                media: JSON.parse(localStorage.getItem('ammar_media') || '[]')
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "ammar_vault_backup.json");
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+        }
+
+        function importBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = JSON.parse(e.target.result);
+                    if(content.passwords) localStorage.setItem('ammar_passwords', JSON.stringify(content.passwords));
+                    if(content.media) localStorage.setItem('ammar_media', JSON.stringify(content.media));
+                    loadAllData();
+                    alert('تم استرجاع جميع البيانات بنجاح تام!');
+                } catch(err) {
+                    alert('الملف غير صالح!');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

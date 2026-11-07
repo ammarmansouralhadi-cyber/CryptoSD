@@ -27,8 +27,8 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             border: 2px solid #d4af37;
         }
-        h1, h2 { text-align: center; color: #d4af37; }
-        input, button {
+        h1, h2, h3 { text-align: center; color: #d4af37; }
+        input, button, select {
             width: 100%;
             padding: 12px;
             margin: 8px 0;
@@ -55,7 +55,7 @@
             border: 1px solid #333;
         }
         .item-card {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             padding: 10px;
             margin-top: 8px;
             border-radius: 6px;
@@ -71,6 +71,11 @@
             padding: 8px;
             border-radius: 5px;
             margin-bottom: 15px;
+        }
+        img, video {
+            max-width: 100%;
+            border-radius: 6px;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -92,7 +97,7 @@
         <div id="vault-content" class="hidden">
             <div class="vault-badge">🔐 خزنة عمار المحمية</div>
 
-            <!-- أزرار النسخ الاحتياطي والاسترجاع للهاتف الجديد -->
+            <!-- أزرار النسخ الاحتياطي والاسترجاع -->
             <div style="background: rgba(212, 175, 55, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed #d4af37;">
                 <p style="margin: 0 0 8px 0; font-size: 13px; text-align: center; color: #d4af37;">📱 لنقل البيانات لهاتف جديد:</p>
                 <button onclick="exportBackup()" style="background: #27ae60; color: #fff; margin-bottom: 5px;">📥 تحميل ملف النسخة الاحتياطية</button>
@@ -100,22 +105,22 @@
                 <input type="file" id="import-file" onchange="importBackup(event)" style="padding: 6px; font-size: 12px;">
             </div>
             
-            <!-- قسم البيانات -->
+            <!-- قسم كلمات المرور -->
             <div class="vault-section">
-                <h3>🔑 كلمات المرور والأسماء والإيميلات</h3>
+                <h3>🔑 كلمات المرور والإيميلات</h3>
                 <input type="text" id="pass-title" placeholder="اسم الحساب / الشخص">
                 <input type="text" id="pass-user" placeholder="الإيميل أو اسم المستخدم">
-                <input type="text" id="pass-value" placeholder="كلمة المرور أو الرقم">
-                <button onclick="saveItem('passwords')">حفظ البيانات</button>
+                <input type="text" id="pass-value" placeholder="كلمة المرور">
+                <button onclick="savePassword()">حفظ البيانات</button>
                 <div id="passwords-list"></div>
             </div>
 
-            <!-- قسم الوسائط والتطبيقات -->
+            <!-- قسم الوسائط والملفات (رفع مباشر من الهاتف) -->
             <div class="vault-section">
-                <h3>📱 الصور، الفيديوهات والتطبيقات</h3>
-                <input type="text" id="media-title" placeholder="اسم الملف أو التطبيق">
-                <input type="text" id="media-url" placeholder="رابط الملف أو التطبيق (URL)">
-                <button onclick="saveItem('media')">حفظ الملف / التطبيق</button>
+                <h3>📱 رفع الصور والفيديوهات من الهاتف</h3>
+                <input type="text" id="media-title" placeholder="عنوان الصورة أو الفيديو">
+                <input type="file" id="media-file" accept="image/*,video/*" style="padding: 8px;">
+                <button onclick="saveMediaFile()">حفظ الملف في الخزنة</button>
                 <div id="media-list"></div>
             </div>
 
@@ -143,41 +148,60 @@
             document.getElementById('password').value = '';
         }
 
-        function saveItem(type) {
-            let data = {};
-            if (type === 'passwords') {
-                data.title = document.getElementById('pass-title').value;
-                data.user = document.getElementById('pass-user').value;
-                data.val = document.getElementById('pass-value').value;
-                if(!data.title || !data.val) return alert('يرجى كتابة الاسم وكلمة المرور');
-            } else {
-                data.title = document.getElementById('media-title').value;
-                data.url = document.getElementById('media-url').value;
-                if(!data.title || !data.url) return alert('يرجى ملء الحقول');
-            }
+        function savePassword() {
+            const title = document.getElementById('pass-title').value;
+            const user = document.getElementById('pass-user').value;
+            const val = document.getElementById('pass-value').value;
+            if(!title || !val) return alert('يرجى كتابة الاسم وكلمة المرور');
 
-            let saved = JSON.parse(localStorage.getItem('ammar_' + type) || '[]');
-            saved.push(data);
-            localStorage.setItem('ammar_' + type, JSON.stringify(saved));
+            let saved = JSON.parse(localStorage.getItem('ammar_passwords') || '[]');
+            saved.push({title, user, val});
+            localStorage.setItem('ammar_passwords', JSON.stringify(saved));
 
-            document.querySelectorAll('input').forEach(i => { 
-                if(i.id !== 'username' && i.id !== 'password' && i.type !== 'file') i.value = ''; 
-            });
+            document.getElementById('pass-title').value = '';
+            document.getElementById('pass-user').value = '';
+            document.getElementById('pass-value').value = '';
             loadAllData();
         }
 
+        function saveMediaFile() {
+            const title = document.getElementById('media-title').value;
+            const fileInput = document.getElementById('media-file');
+            if(!title || fileInput.files.length === 0) return alert('يرجى كتابة العنوان واختيار صورة أو فيديو من الهاتف');
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                let saved = JSON.parse(localStorage.getItem('ammar_media') || '[]');
+                saved.push({ title, type: file.type, data: base64Data });
+                localStorage.setItem('ammar_media', JSON.stringify(saved));
+
+                document.getElementById('media-title').value = '';
+                fileInput.value = '';
+                loadAllData();
+                alert('تم حفظ الملف بنجاح داخل الخزنة!');
+            };
+            reader.readAsDataURL(file);
+        }
+
         function loadAllData() {
-            ['passwords', 'media'].forEach(type => {
-                const list = document.getElementById(type + '-list');
-                list.innerHTML = '';
-                let saved = JSON.parse(localStorage.getItem('ammar_' + type) || '[]');
-                saved.forEach(item => {
-                    if (type === 'passwords') {
-                        list.innerHTML += `<div class="item-card"><b>${item.title}</b><br>المستخدم: ${item.user}<br>المرور: ${item.val}</div>`;
-                    } else {
-                        list.innerHTML += `<div class="item-card"><b>${item.title}</b><br><a href="${item.url}" target="_blank" style="color: #d4af37;">فتح الرابط / الملف</a></div>`;
-                    }
-                });
+            const passList = document.getElementById('passwords-list');
+            passList.innerHTML = '';
+            let savedPass = JSON.parse(localStorage.getItem('ammar_passwords') || '[]');
+            savedPass.forEach(item => {
+                passList.innerHTML += `<div class="item-card"><b>${item.title}</b><br>المستخدم: ${item.user}<br>المرور: ${item.val}</div>`;
+            });
+
+            const mediaList = document.getElementById('media-list');
+            mediaList.innerHTML = '';
+            let savedMedia = JSON.parse(localStorage.getItem('ammar_media') || '[]');
+            savedMedia.forEach(item => {
+                if(item.type.startsWith('image/')) {
+                    mediaList.innerHTML += `<div class="item-card"><b>${item.title}</b><br><img src="${item.data}"></div>`;
+                } else if(item.type.startsWith('video/')) {
+                    mediaList.innerHTML += `<div class="item-card"><b>${item.title}</b><br><video controls src="${item.data}"></video></div>`;
+                }
             });
         }
 
